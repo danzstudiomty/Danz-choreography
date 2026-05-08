@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danz Studio - Gestor de Montajes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .tab-active { @apply border-b-2 border-blue-600 text-blue-600; }
+        .shadow-card { @apply shadow-sm; }
+        table { width: 100%; border-collapse: collapse; }
+        td, th { padding: 12px; border: 1px solid #e5e7eb; text-align: left; }
+        th { @apply bg-gray-100 font-semibold; }
+        tr:hover { @apply bg-gray-50; }
+        .badge { @apply inline-block px-3 py-1 rounded-full text-xs font-semibold; }
+        .badge-warning { @apply bg-yellow-100 text-yellow-800; }
+        .badge-danger { @apply bg-red-100 text-red-800; }
+        .badge-success { @apply bg-green-100 text-green-800; }
+        input, select, textarea { @apply border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500; }
+        button { @apply px-4 py-2 rounded font-semibold transition; }
+        .btn-primary { @apply bg-blue-600 text-white hover:bg-blue-700; }
+        .btn-secondary { @apply bg-gray-300 text-gray-800 hover:bg-gray-400; }
+        .btn-danger { @apply bg-red-500 text-white hover:bg-red-600; }
+        .btn-small { @apply px-2 py-1 text-sm; }
+        .modal { @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden; }
+        .modal.active { @apply flex; }
+        .modal-content { @apply bg-white p-6 rounded-lg max-w-md w-full mx-4; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+<!-- Header -->
+<header class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-purple-600">Danz Studio</h1>
+            <p class="text-gray-600 text-sm">Gestión de Montajes Coreográficos</p>
+        </div>
+        <div class="text-right">
+            <p id="userInfo" class="text-sm text-gray-700 mb-2"></p>
+            <button onclick="logout()" class="btn-danger btn-small">Salir</button>
+        </div>
+    </div>
+</header>
+
+<!-- Login Modal -->
+<div id="loginModal" class="modal active">
+    <div class="modal-content">
+        <h2 class="text-2xl font-bold mb-4">Bienvenido a Danz Studio</h2>
+        <p class="text-gray-600 mb-4">Ingresa tu email para acceder</p>
+        <input type="email" id="loginEmail" placeholder="tu@email.com" class="mb-4">
+        <button onclick="login()" class="btn-primary w-full mb-2">Ingresar</button>
+        <p class="text-xs text-gray-500 mt-4">Email admin: admin@danzsudio.com</p>
+    </div>
+</div>
+
+<!-- Navigation -->
+<nav class="bg-white border-b">
+    <div class="max-w-6xl mx-auto px-4 flex overflow-x-auto">
+        <button onclick="switchTab('dashboard')" class="px-4 py-3 font-semibold tab-active" id="tab-dashboard">📊 Dashboard</button>
+        <button onclick="switchTab('colegios')" class="px-4 py-3 font-semibold" id="tab-colegios">🏫 Colegios</button>
+        <button onclick="switchTab('coreografos')" class="px-4 py-3 font-semibold" id="tab-coreografos">💃 Coreógrafos</button>
+        <button onclick="switchTab('grupos')" class="px-4 py-3 font-semibold" id="tab-grupos">👥 Grupos</button>
+        <button onclick="switchTab('pagos')" class="px-4 py-3 font-semibold" id="tab-pagos">💰 Pagos</button>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-6xl mx-auto px-4 py-6">
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="hidden">
+        <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Eventos Próximos -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded shadow-card">
+                <h3 class="font-bold text-blue-900 mb-3">📅 Eventos Próximos</h3>
+                <div id="eventosProximos" class="space-y-2 text-sm">
+                    <p class="text-gray-600">Cargando...</p>
+                </div>
+            </div>
+
+            <!-- Alertas -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded shadow-card">
+                <h3 class="font-bold text-yellow-900 mb-3">⚠️ Alertas</h3>
+                <div id="alertas" class="space-y-2 text-sm">
+                    <p class="text-gray-600">Cargando...</p>
+                </div>
+            </div>
+
+            <!-- Pagos Pendientes -->
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded shadow-card">
+                <h3 class="font-bold text-red-900 mb-3">💸 Pagos Pendientes (Colegios)</h3>
+                <div id="pagosPendientes" class="space-y-2 text-sm">
+                    <p class="text-gray-600">Cargando...</p>
+                </div>
+            </div>
+
+            <!-- Honorarios Adeudados -->
+            <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded shadow-card">
+                <h3 class="font-bold text-orange-900 mb-3">📊 Honorarios Adeudados a Coreógrafos</h3>
+                <div id="honorarios" class="space-y-2 text-sm">
+                    <p class="text-gray-600">Cargando...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COLEGIOS -->
+    <div id="colegios" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Colegios</h2>
+            <button onclick="openFormColegio()" class="btn-primary">+ Nuevo Colegio</button>
+        </div>
+        <div id="formColegio" class="hidden bg-white p-4 rounded shadow-card mb-6">
+            <h3 class="font-bold mb-4">Nuevo Colegio</h3>
+            <input type="text" id="col_nombre" placeholder="Nombre Colegio" class="mb-3">
+            <input type="date" id="col_fecha" class="mb-3">
+            <input type="text" id="col_ubicacion" placeholder="Ubicación" class="mb-3">
+            <input type="number" id="col_monto" placeholder="Monto (MXN)" class="mb-3">
+            <input type="text" id="col_contacto" placeholder="Contacto" class="mb-3">
+            <input type="tel" id="col_telefono" placeholder="Teléfono" class="mb-3">
+            <div class="flex gap-2">
+                <button onclick="saveColegio()" class="btn-primary">Guardar</button>
+                <button onclick="closeFormColegio()" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto bg-white rounded shadow-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Colegio</th>
+                        <th>Graduación</th>
+                        <th>Ubicación</th>
+                        <th>Monto</th>
+                        <th>Contacto</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="colegiosList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- COREÓGRAFOS -->
+    <div id="coreografos" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Coreógrafos</h2>
+            <button onclick="openFormCoreografo()" class="btn-primary">+ Nuevo Coreógrafo</button>
+        </div>
+        <div id="formCoreografo" class="hidden bg-white p-4 rounded shadow-card mb-6">
+            <h3 class="font-bold mb-4">Nuevo Coreógrafo</h3>
+            <input type="text" id="core_nombre" placeholder="Nombre" class="mb-3">
+            <input type="email" id="core_email" placeholder="Email" class="mb-3">
+            <input type="tel" id="core_telefono" placeholder="Teléfono" class="mb-3">
+            <input type="number" id="core_tarifa" placeholder="Tarifa por Grupo (MXN)" class="mb-3">
+            <div class="flex gap-2">
+                <button onclick="saveCoreografo()" class="btn-primary">Guardar</button>
+                <button onclick="closeFormCoreografo()" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto bg-white rounded shadow-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Tarifa/Grupo</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="coreografosList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- GRUPOS -->
+    <div id="grupos" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Grupos</h2>
+            <button onclick="openFormGrupo()" class="btn-primary">+ Nuevo Grupo</button>
+        </div>
+        <div id="formGrupo" class="hidden bg-white p-4 rounded shadow-card mb-6">
+            <h3 class="font-bold mb-4">Nuevo Grupo</h3>
+            <select id="grp_colegio" class="mb-3">
+                <option value="">Seleccionar Colegio</option>
+            </select>
+            <input type="text" id="grp_nombre" placeholder="Nombre Grupo" class="mb-3">
+            <input type="number" id="grp_alumnos" placeholder="Cantidad Alumnos" class="mb-3">
+            <select id="grp_coreografo" class="mb-3">
+                <option value="">Sin Coreógrafo Asignado</option>
+            </select>
+            <input type="text" id="grp_musica" placeholder="Música (separar con comas)" class="mb-3">
+            <select id="grp_turno" class="mb-3">
+                <option value="">Seleccionar Turno</option>
+                <option value="matutino">Matutino</option>
+                <option value="vespertino">Vespertino</option>
+            </select>
+            <input type="text" id="grp_maestro" placeholder="Maestro Responsable" class="mb-3">
+            <input type="tel" id="grp_telefonoMaestro" placeholder="Teléfono Maestro" class="mb-3">
+            <div class="flex gap-2">
+                <button onclick="saveGrupo()" class="btn-primary">Guardar</button>
+                <button onclick="closeFormGrupo()" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto bg-white rounded shadow-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Colegio</th>
+                        <th>Grupo</th>
+                        <th>Alumnos</th>
+                        <th>Coreógrafo</th>
+                        <th>Música</th>
+                        <th>Turno</th>
+                        <th>Maestro</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="gruposList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PAGOS -->
+    <div id="pagos" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Pagos</h2>
+            <button onclick="openFormPago()" class="btn-primary">+ Registrar Pago</button>
+        </div>
+        <div id="formPago" class="hidden bg-white p-4 rounded shadow-card mb-6">
+            <h3 class="font-bold mb-4">Registrar Pago</h3>
+            <select id="pago_tipo" onchange="updateFormPago()" class="mb-3">
+                <option value="">Tipo de Pago</option>
+                <option value="recibido">Recibido de Colegio</option>
+                <option value="pagado">Pagado a Coreógrafo</option>
+            </select>
+            <select id="pago_relacion" class="mb-3">
+                <option value="">Seleccionar</option>
+            </select>
+            <input type="number" id="pago_monto" placeholder="Monto (MXN)" class="mb-3">
+            <input type="date" id="pago_fecha" class="mb-3">
+            <input type="text" id="pago_referencia" placeholder="Referencia/Notas" class="mb-3">
+            <div class="flex gap-2">
+                <button onclick="savePago()" class="btn-primary">Guardar</button>
+                <button onclick="closeFormPago()" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto bg-white rounded shadow-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>De/Para</th>
+                        <th>Monto</th>
+                        <th>Fecha</th>
+                        <th>Referencia</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="pagosList"></tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<script>
+    // ========== ESTADO GLOBAL ==========
+    let currentUser = null;
+    let isAdmin = false;
+    let data = {
+        colegios: [],
+        coreografos: [],
+        grupos: [],
+        pagos: []
+    };
+
+    // ========== INICIALIZACIÓN ==========
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedUser = localStorage.getItem('danzsUser');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            isAdmin = currentUser.email === 'admin@danzsudio.com';
+            loadData();
+            showApp();
+        }
+    });
+
+    // ========== AUTH ==========
+    function login() {
+        const email = document.getElementById('loginEmail').value.trim();
+        if (!email) {
+            alert('Por favor ingresa tu email');
+            return;
+        }
+        currentUser = { email };
+        isAdmin = email === 'admin@danzsudio.com';
+        localStorage.setItem('danzsUser', JSON.stringify(currentUser));
+        loadData();
+        showApp();
+    }
+
+    function logout() {
+        currentUser = null;
+        isAdmin = false;
+        localStorage.removeItem('danzsUser');
+        location.reload();
+    }
+
+    function showApp() {
+        document.getElementById('loginModal').classList.remove('active');
+        document.getElementById('userInfo').textContent = `${currentUser.email} ${isAdmin ? '(Admin)' : '(Coreógrafo)'}`;
+        
+        // Ocultar controles si no es admin
+        if (!isAdmin) {
+            document.getElementById('tab-colegios').style.display = 'none';
+            document.getElementById('tab-coreografos').style.display = 'none';
+            document.getElementById('tab-pagos').style.display = 'none';
+        }
+        
+        updateDashboard();
+    }
+
+    // ========== STORAGE ==========
+    function loadData() {
+        const saved = localStorage.getItem('danzsStudioData');
+        if (saved) {
+            data = JSON.parse(saved);
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('danzsStudioData', JSON.stringify(data));
+        updateDashboard();
+    }
+
+    // ========== NAVEGACIÓN ==========
+    function switchTab(tabName) {
+        document.querySelectorAll('[id^="tab-"]').forEach(tab => tab.classList.remove('tab-active'));
+        document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
+        
+        document.getElementById(`tab-${tabName}`).classList.add('tab-active');
+        document.getElementById(tabName).classList.remove('hidden');
+        
+        if (tabName === 'colegios') renderColegios();
+        if (tabName === 'coreografos') renderCoreografos();
+        if (tabName === 'grupos') renderGrupos();
+        if (tabName === 'pagos') renderPagos();
+    }
+
+    // ========== COLEGIOS ==========
+    function openFormColegio() {
+        if (!isAdmin) return;
+        document.getElementById('formColegio').classList.remove('hidden');
+        document.getElementById('col_nombre').focus();
+    }
+
+    function closeFormColegio() {
+        document.getElementById('formColegio').classList.add('hidden');
+        document.getElementById('col_nombre').value = '';
+        document.getElementById('col_fecha').value = '';
+        document.getElementById('col_ubicacion').value = '';
+        document.getElementById('col_monto').value = '';
+        document.getElementById('col_contacto').value = '';
+        document.getElementById('col_telefono').value = '';
+    }
+
+    function saveColegio() {
+        const colegio = {
+            id: Date.now().toString(),
+            nombre: document.getElementById('col_nombre').value,
+            fechaGraduacion: document.getElementById('col_fecha').value,
+            ubicacion: document.getElementById('col_ubicacion').value,
+            monto: parseFloat(document.getElementById('col_monto').value) || 0,
+            contacto: document.getElementById('col_contacto').value,
+            telefono: document.getElementById('col_telefono').value
+        };
+        
+        if (!colegio.nombre || !colegio.fechaGraduacion) {
+            alert('Completa nombre y fecha');
+            return;
+        }
+        
+        data.colegios.push(colegio);
+        saveData();
+        closeFormColegio();
+        renderColegios();
+        updateFormSelects();
+    }
+
+    function deleteColegio(id) {
+        if (confirm('¿Eliminar este colegio?')) {
+            data.colegios = data.colegios.filter(c => c.id !== id);
+            saveData();
+            renderColegios();
+            updateFormSelects();
+        }
+    }
+
+    function renderColegios() {
+        const html = data.colegios.map(col => `
+            <tr>
+                <td class="font-semibold">${col.nombre}</td>
+                <td>${new Date(col.fechaGraduacion).toLocaleDateString('es-MX')}</td>
+                <td>${col.ubicacion || '—'}</td>
+                <td>$${col.monto.toLocaleString('es-MX')} MXN</td>
+                <td>${col.contacto} ${col.telefono ? `(${col.telefono})` : ''}</td>
+                <td>
+                    <button onclick="deleteColegio('${col.id}')" class="btn-danger btn-small">Eliminar</button>
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('colegiosList').innerHTML = html;
+    }
+
+    // ========== COREÓGRAFOS ==========
+    function openFormCoreografo() {
+        if (!isAdmin) return;
+        document.getElementById('formCoreografo').classList.remove('hidden');
+    }
+
+    function closeFormCoreografo() {
+        document.getElementById('formCoreografo').classList.add('hidden');
+        document.getElementById('core_nombre').value = '';
+        document.getElementById('core_email').value = '';
+        document.getElementById('core_telefono').value = '';
+        document.getElementById('core_tarifa').value = '';
+    }
+
+    function saveCoreografo() {
+        const coreografo = {
+            id: Date.now().toString(),
+            nombre: document.getElementById('core_nombre').value,
+            email: document.getElementById('core_email').value,
+            telefono: document.getElementById('core_telefono').value,
+            tarifa: parseFloat(document.getElementById('core_tarifa').value) || 0
+        };
+        
+        if (!coreografo.nombre || !coreografo.email || !coreografo.tarifa) {
+            alert('Completa todos los campos');
+            return;
+        }
+        
+        data.coreografos.push(coreografo);
+        saveData();
+        closeFormCoreografo();
+        renderCoreografos();
+        updateFormSelects();
+    }
+
+    function deleteCoreografo(id) {
+        if (confirm('¿Eliminar este coreógrafo?')) {
+            data.coreografos = data.coreografos.filter(c => c.id !== id);
+            saveData();
+            renderCoreografos();
+            updateFormSelects();
+        }
+    }
+
+    function renderCoreografos() {
+        const html = data.coreografos
+            .filter(c => isAdmin || c.email === currentUser.email)
+            .map(c => `
+            <tr>
+                <td class="font-semibold">${c.nombre}</td>
+                <td>${c.email}</td>
+                <td>${c.telefono}</td>
+                <td>$${c.tarifa.toLocaleString('es-MX')} MXN</td>
+                <td>
+                    ${isAdmin ? `<button onclick="deleteCoreografo('${c.id}')" class="btn-danger btn-small">Eliminar</button>` : '—'}
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('coreografosList').innerHTML = html;
+    }
+
+    // ========== GRUPOS ==========
+    function openFormGrupo() {
+        if (!isAdmin) return;
+        document.getElementById('formGrupo').classList.remove('hidden');
+        updateFormSelects();
+    }
+
+    function closeFormGrupo() {
+        document.getElementById('formGrupo').classList.add('hidden');
+        document.getElementById('grp_colegio').value = '';
+        document.getElementById('grp_nombre').value = '';
+        document.getElementById('grp_alumnos').value = '';
+        document.getElementById('grp_coreografo').value = '';
+        document.getElementById('grp_musica').value = '';
+        document.getElementById('grp_turno').value = '';
+        document.getElementById('grp_maestro').value = '';
+        document.getElementById('grp_telefonoMaestro').value = '';
+    }
+
+    function saveGrupo() {
+        const grupo = {
+            id: Date.now().toString(),
+            colegio: document.getElementById('grp_colegio').value,
+            nombre: document.getElementById('grp_nombre').value,
+            alumnos: parseInt(document.getElementById('grp_alumnos').value) || 0,
+            coreografo: document.getElementById('grp_coreografo').value || null,
+            musica: document.getElementById('grp_musica').value.split(',').map(m => m.trim()).filter(m => m),
+            turno: document.getElementById('grp_turno').value,
+            maestro: document.getElementById('grp_maestro').value,
+            telefonoMaestro: document.getElementById('grp_telefonoMaestro').value
+        };
+        
+        if (!grupo.colegio || !grupo.nombre || !grupo.alumnos || !grupo.turno) {
+            alert('Completa todos los campos requeridos');
+            return;
+        }
+        
+        data.grupos.push(grupo);
+        saveData();
+        closeFormGrupo();
+        renderGrupos();
+    }
+
+    function deleteGrupo(id) {
+        if (confirm('¿Eliminar este grupo?')) {
+            data.grupos = data.grupos.filter(g => g.id !== id);
+            saveData();
+            renderGrupos();
+        }
+    }
+
+    function renderGrupos() {
+        const gruposVisibles = isAdmin 
+            ? data.grupos 
+            : data.grupos.filter(g => {
+                const coreografo = data.coreografos.find(c => c.id === g.coreografo);
+                return coreografo?.email === currentUser.email;
+            });
+
+        const html = gruposVisibles.map(g => {
+            const col = data.colegios.find(c => c.id === g.colegio);
+            const core = data.coreografos.find(c => c.id === g.coreografo);
+            return `
+            <tr>
+                <td class="font-semibold text-sm">${col?.nombre || '—'}</td>
+                <td>${g.nombre}</td>
+                <td>${g.alumnos}</td>
+                <td>${core?.nombre || '<span class="badge badge-warning">Sin asignar</span>'}</td>
+                <td text-xs>${g.musica.join(', ') || '<span class="badge badge-danger">Sin música</span>'}</td>
+                <td>${g.turno}</td>
+                <td>${g.maestro || '—'}</td>
+                <td>
+                    ${isAdmin ? `<button onclick="deleteGrupo('${g.id}')" class="btn-danger btn-small">Eliminar</button>` : '—'}
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('gruposList').innerHTML = html;
+    }
+
+    // ========== PAGOS ==========
+    function openFormPago() {
+        if (!isAdmin) return;
+        document.getElementById('formPago').classList.remove('hidden');
+        document.getElementById('pago_fecha').valueAsDate = new Date();
+    }
+
+    function closeFormPago() {
+        document.getElementById('formPago').classList.add('hidden');
+        document.getElementById('pago_tipo').value = '';
+        document.getElementById('pago_relacion').value = '';
+        document.getElementById('pago_monto').value = '';
+        document.getElementById('pago_fecha').value = '';
+        document.getElementById('pago_referencia').value = '';
+    }
+
+    function updateFormPago() {
+        const tipo = document.getElementById('pago_tipo').value;
+        const relacion = document.getElementById('pago_relacion');
+        relacion.innerHTML = '<option value="">Seleccionar</option>';
+
+        if (tipo === 'recibido') {
+            data.colegios.forEach(col => {
+                relacion.innerHTML += `<option value="${col.id}">${col.nombre}</option>`;
+            });
+            relacion.name = 'colegio';
+        } else if (tipo === 'pagado') {
+            data.coreografos.forEach(core => {
+                relacion.innerHTML += `<option value="${core.id}">${core.nombre}</option>`;
+            });
+            relacion.name = 'coreografo';
+        }
+    }
+
+    function savePago() {
+        const tipo = document.getElementById('pago_tipo').value;
+        const relacion = document.getElementById('pago_relacion').value;
+        
+        if (!tipo || !relacion) {
+            alert('Selecciona tipo y relación');
+            return;
+        }
+
+        const pago = {
+            id: Date.now().toString(),
+            tipo: tipo,
+            monto: parseFloat(document.getElementById('pago_monto').value) || 0,
+            fecha: document.getElementById('pago_fecha').value,
+            referencia: document.getElementById('pago_referencia').value
+        };
+
+        if (tipo === 'recibido') {
+            pago.colegio = relacion;
+        } else {
+            pago.coreografo = relacion;
+        }
+
+        if (!pago.monto || !pago.fecha) {
+            alert('Completa monto y fecha');
+            return;
+        }
+
+        data.pagos.push(pago);
+        saveData();
+        closeFormPago();
+        renderPagos();
+    }
+
+    function deletePago(id) {
+        if (confirm('¿Eliminar este pago?')) {
+            data.pagos = data.pagos.filter(p => p.id !== id);
+            saveData();
+            renderPagos();
+        }
+    }
+
+    function renderPagos() {
+        const html = data.pagos.map(p => {
+            let relacion = '—';
+            if (p.tipo === 'recibido') {
+                relacion = data.colegios.find(c => c.id === p.colegio)?.nombre || '—';
+            } else {
+                relacion = data.coreografos.find(c => c.id === p.coreografo)?.nombre || '—';
+            }
+            
+            return `
+            <tr class="${p.tipo === 'recibido' ? 'bg-green-50' : 'bg-orange-50'}">
+                <td>${p.tipo === 'recibido' ? '✓ Recibido' : '→ Pagado'}</td>
+                <td>${relacion}</td>
+                <td class="font-bold">$${p.monto.toLocaleString('es-MX')} MXN</td>
+                <td>${new Date(p.fecha).toLocaleDateString('es-MX')}</td>
+                <td>${p.referencia || '—'}</td>
+                <td>
+                    <button onclick="deletePago('${p.id}')" class="btn-danger btn-small">Eliminar</button>
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('pagosList').innerHTML = html;
+    }
+
+    // ========== DASHBOARD ==========
+    function updateDashboard() {
+        if (!isAdmin) return;
+
+        // Eventos Próximos
+        const eventosHtml = data.colegios
+            .filter(c => new Date(c.fechaGraduacion) > new Date())
+            .sort((a, b) => new Date(a.fechaGraduacion) - new Date(b.fechaGraduacion))
+            .slice(0, 5)
+            .map(c => `
+                <div class="flex justify-between">
+                    <span>${c.nombre}</span>
+                    <span class="font-semibold">${new Date(c.fechaGraduacion).toLocaleDateString('es-MX')}</span>
+                </div>
+            `).join('') || '<p class="text-gray-600">Sin eventos próximos</p>';
+        document.getElementById('eventosProximos').innerHTML = eventosHtml;
+
+        // Alertas
+        const sinCoreografo = data.grupos.filter(g => !g.coreografo);
+        const sinMusica = data.grupos.filter(g => !g.musica || g.musica.length === 0);
+        const alertasHtml = `
+            ${sinCoreografo.length > 0 ? `<div class="badge badge-warning">${sinCoreografo.length} grupo(s) sin coreógrafo</div>` : ''}
+            ${sinMusica.length > 0 ? `<div class="badge badge-danger">${sinMusica.length} grupo(s) sin música</div>` : ''}
+            ${sinCoreografo.length + sinMusica.length === 0 ? '<p class="text-green-700">✓ Todo en orden</p>' : ''}
+        `;
+        document.getElementById('alertas').innerHTML = alertasHtml;
+
+        // Pagos Pendientes
+        const pagosPendientesHtml = data.colegios.map(col => {
+            const pagado = data.pagos
+                .filter(p => p.tipo === 'recibido' && p.colegio === col.id)
+                .reduce((sum, p) => sum + p.monto, 0);
+            const pendiente = col.monto - pagado;
+            
+            return pendiente > 0 ? `
+                <div class="flex justify-between">
+                    <span>${col.nombre}</span>
+                    <span class="font-bold text-red-600">$${pendiente.toLocaleString('es-MX')}</span>
+                </div>
+            ` : '';
+        }).filter(h => h).join('') || '<p class="text-green-700">✓ Sin pagos pendientes</p>';
+        document.getElementById('pagosPendientes').innerHTML = pagosPendientesHtml;
+
+        // Honorarios adeudados
+        const honorariosHtml = data.coreografos.map(core => {
+            const gruposAct = data.grupos.filter(g => g.coreografo === core.id).length;
+            const pagado = data.pagos
+                .filter(p => p.tipo === 'pagado' && p.coreografo === core.id)
+                .reduce((sum, p) => sum + p.monto, 0);
+            const adeudado = (gruposAct * core.tarifa) - pagado;
+            
+            return adeudado > 0 ? `
+                <div class="flex justify-between">
+                    <span>${core.nombre}</span>
+                    <span class="font-bold text-orange-600">$${adeudado.toLocaleString('es-MX')}</span>
+                </div>
+            ` : '';
+        }).filter(h => h).join('') || '<p class="text-green-700">✓ Sin honorarios pendientes</p>';
+        document.getElementById('honorarios').innerHTML = honorariosHtml;
+    }
+
+    // ========== UTILIDADES ==========
+    function updateFormSelects() {
+        // Actualizar selects de colegios
+        const colegiosOptions = '<option value="">Seleccionar Colegio</option>' + 
+            data.colegios.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        document.getElementById('grp_colegio').innerHTML = colegiosOptions;
+
+        // Actualizar selects de coreógrafos
+        const coreografosOptions = '<option value="">Sin Coreógrafo Asignado</option>' + 
+            data.coreografos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        document.getElementById('grp_coreografo').innerHTML = coreografosOptions;
+    }
+</script>
+
+</body>
+</html>
